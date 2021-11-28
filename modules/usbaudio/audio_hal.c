@@ -528,9 +528,17 @@ static int stream_set_new_devices(struct pcm_config *config,
         }
         status = proxy_prepare(&device_info->proxy, &device_info->profile, config);
         if (status != 0) {
-            ALOGE("%s failed to prepare device card=%d;device=%d",
-                    __func__, cards[i], devices[i]);
-            goto exit;
+            ALOGW("proxy_prepare returned a non-zero value.");
+            if (device_info->proxy.alsa_config.rate != config->rate) {
+                ALOGW("Retry with a different sample rate: %d", device_info->proxy.alsa_config.rate);
+                config->rate = device_info->proxy.alsa_config.rate;
+                status = proxy_prepare(&device_info->proxy, &device_info->profile, config);
+                if (status != 0) {
+                    ALOGE("%s failed to prepare device card=%d;device=%d",
+                            __func__, cards[i], devices[i]);
+                    goto exit;
+                }
+            }
         }
         list_add_tail(alsa_devices, &device_info->list_node);
     }
